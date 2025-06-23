@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estúdio Coral Virtual (5 Canais)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #4F46E5;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+        .slider-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #E5E7EB;
+            border-radius: 9999px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #4F46E5;
+            cursor: pointer;
+            border-radius: 50%;
+            margin-top: -6px;
+            border: 2px solid white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+        input[type=range].progress-bar::-webkit-slider-thumb {
+             width: 16px;
+             height: 16px;
+             margin-top: -4px;
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #4F46E5;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+         input[type=range]::-webkit-slider-runnable-track {
+            height: 8px;
+            cursor: pointer;
+            background: #E5E7EB;
+            border-radius: 9999px;
+        }
+        input[type=range]::-moz-range-track {
+             height: 8px;
+            cursor: pointer;
+            background: #E5E7EB;
+            border-radius: 9999px;
+        }
+        .control-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .control-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+         .control-button:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen py-8">
+
+    <div class="w-full max-w-6xl mx-auto p-4 md:p-8 bg-white rounded-2xl shadow-2xl">
+        
+        <header class="text-center mb-6 md:mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-indigo-700">Estúdio Coral Virtual</h1>
+            <p class="text-gray-500 mt-2">Música: Meu Abrigo (Melim) | Controle as vozes para estudar.</p>
+        </header>
+
+        <!-- Master Controls -->
+        <div id="master-controls" class="flex flex-col gap-4 p-6 bg-gray-50 rounded-xl mb-8 border border-gray-200">
+             <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <button id="play-pause-btn" class="control-button w-full sm:w-auto flex items-center justify-center gap-3 bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+                    <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+                    <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pause hidden"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></svg>
+                    <span id="play-text">Tocar</span>
+                </button>
+                <div class="flex items-center gap-2 w-full sm:w-64">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-500"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                    <input id="master-volume" type="range" min="-40" max="0" value="-6" step="1" class="slider-track w-full">
+                </div>
+                <div id="loading" class="text-gray-500 text-sm w-32 text-center">Carregando...</div>
+            </div>
+            <!-- Timeline Controls -->
+            <div class="flex items-center gap-3 w-full mt-2">
+                <span id="current-time" class="text-sm font-mono text-gray-600">00:00</span>
+                <input type="range" id="progress-bar" value="0" step="0.1" class="slider-track w-full progress-bar" disabled>
+                <span id="total-time" class="text-sm font-mono text-gray-600">00:00</span>
+            </div>
+        </div>
+
+
+        <!-- Voice Channels -->
+        <div class="flex flex-col gap-4">
+            <!-- Base Channel on its own row -->
+            <div class="voice-channel p-5 bg-gray-50 rounded-xl border border-gray-200" data-voice="base">
+                <h2 class="text-xl font-bold text-purple-600">Base</h2>
+                 <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                    <div>
+                        <label class="text-sm font-medium text-gray-600">Volume</label>
+                        <input type="range" min="-40" max="0" value="-3" step="1" class="volume-slider slider-track w-full mt-1">
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium text-gray-600">Balanço (E/D)</label>
+                        <input type="range" min="-1" max="1" value="0" step="0.1" class="pan-slider slider-track w-full mt-1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Other voice channels side-by-side -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="voice-channel p-5 bg-gray-50 rounded-xl border border-gray-200" data-voice="descanto">
+                    <h2 class="text-xl font-bold text-pink-600">Descanto</h2>
+                    <div class="mt-4 space-y-4">
+                        <div><label class="text-sm font-medium text-gray-600">Volume</label><input type="range" min="-40" max="0" value="-6" step="1" class="volume-slider slider-track w-full mt-1"></div>
+                        <div><label class="text-sm font-medium text-gray-600">Balanço (E/D)</label><input type="range" min="-1" max="1" value="-0.5" step="0.1" class="pan-slider slider-track w-full mt-1"></div>
+                    </div>
+                </div>
+            
+                <div class="voice-channel p-5 bg-gray-50 rounded-xl border border-gray-200" data-voice="soprano">
+                    <h2 class="text-xl font-bold text-red-600">Soprano</h2>
+                    <div class="mt-4 space-y-4">
+                        <div><label class="text-sm font-medium text-gray-600">Volume</label><input type="range" min="-40" max="0" value="-6" step="1" class="volume-slider slider-track w-full mt-1"></div>
+                        <div><label class="text-sm font-medium text-gray-600">Balanço (E/D)</label><input type="range" min="-1" max="1" value="-0.25" step="0.1" class="pan-slider slider-track w-full mt-1"></div>
+                    </div>
+                </div>
+
+                <div class="voice-channel p-5 bg-gray-50 rounded-xl border border-gray-200" data-voice="contralto">
+                    <h2 class="text-xl font-bold text-amber-600">Contralto</h2>
+                    <div class="mt-4 space-y-4">
+                        <div><label class="text-sm font-medium text-gray-600">Volume</label><input type="range" min="-40" max="0" value="-6" step="1" class="volume-slider slider-track w-full mt-1"></div>
+                        <div><label class="text-sm font-medium text-gray-600">Balanço (E/D)</label><input type="range" min="-1" max="1" value="0.25" step="0.1" class="pan-slider slider-track w-full mt-1"></div>
+                    </div>
+                </div>
+
+                <div class="voice-channel p-5 bg-gray-50 rounded-xl border border-gray-200" data-voice="baritono">
+                    <h2 class="text-xl font-bold text-blue-600">Barítono</h2>
+                    <div class="mt-4 space-y-4">
+                        <div><label class="text-sm font-medium text-gray-600">Volume</label><input type="range" min="-40" max="0" value="-6" step="1" class="volume-slider slider-track w-full mt-1"></div>
+                        <div><label class="text-sm font-medium text-gray-600">Balanço (E/D)</label><input type="range" min="-1" max="1" value="0.5" step="0.1" class="pan-slider slider-track w-full mt-1"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const loadingEl = document.getElementById('loading');
+            const playPauseBtn = document.getElementById('play-pause-btn');
+            const playIcon = document.getElementById('play-icon');
+            const pauseIcon = document.getElementById('pause-icon');
+            const playText = document.getElementById('play-text');
+            const progressBar = document.getElementById('progress-bar');
+            const currentTimeEl = document.getElementById('current-time');
+            const totalTimeEl = document.getElementById('total-time');
+
+            let isSeeking = false;
+            let maxDuration = 0;
+
+            const channels = {
+                descanto:  new Tone.Channel({ volume: -6, pan: -0.5 }).toDestination(),
+                soprano:   new Tone.Channel({ volume: -6, pan: -0.25 }).toDestination(),
+                contralto: new Tone.Channel({ volume: -6, pan: 0.25 }).toDestination(),
+                baritono:  new Tone.Channel({ volume: -6, pan: 0.5 }).toDestination(),
+                base:      new Tone.Channel({ volume: -3, pan: 0 }).toDestination()
+            };
+
+            Tone.getDestination().volume.value = -6;
+
+            const mp3_urls = {
+                descanto:  "https://archive.org/download/meu-abrigo-base-ensaio/meu%20abrigo%20-%20descanto.mp3",
+                soprano:   "https://archive.org/download/meu-abrigo-base-ensaio/meu%20abrigo%20-%20soprano.mp3",
+                contralto: "https://archive.org/download/meu-abrigo-base-ensaio/meu%20abrigo%20-%20contralto.mp3",
+                baritono:  "https://archive.org/download/meu-abrigo-base-ensaio/meu%20abrigo%20-%20baritono.mp3",
+                base:      "https://archive.org/download/meu-abrigo-base-ensaio/meu%20abrigo%20-%20base%20ensaio.mp3"
+            };
+
+            const players = {};
+            Object.keys(mp3_urls).forEach(voice => {
+                players[voice] = new Tone.Player(mp3_urls[voice]);
+            });
+
+            try {
+                await Tone.loaded();
+                
+                loadingEl.textContent = 'Pronto!';
+                playPauseBtn.disabled = false;
+                progressBar.disabled = false;
+
+                const delayInSeconds = (4 * 60) / 92;
+
+                Object.keys(players).forEach(voice => {
+                    const player = players[voice];
+                    let startTime = 0;
+                    
+                    if (voice !== 'base') {
+                        startTime = delayInSeconds;
+                    }
+                    
+                    player.connect(channels[voice]);
+                    player.loop = true;
+                    player.sync().start(startTime);
+                    
+                    const trackEffectiveDuration = player.buffer.duration + startTime;
+                    if (trackEffectiveDuration > maxDuration) {
+                        maxDuration = trackEffectiveDuration;
+                    }
+                });
+
+                Tone.Transport.loop = true;
+                Tone.Transport.loopEnd = maxDuration;
+                progressBar.max = maxDuration;
+                totalTimeEl.textContent = formatTime(maxDuration);
+                
+                requestAnimationFrame(updateUI);
+
+            } catch (error) {
+                loadingEl.textContent = 'Erro';
+                console.error('Erro ao carregar ficheiros de áudio:', error);
+                return;
+            }
+
+            function formatTime(seconds) {
+                const minutes = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+            
+            function updateUI() {
+                if (!isSeeking) {
+                    const currentTime = Tone.Transport.seconds;
+                    progressBar.value = currentTime;
+                    currentTimeEl.textContent = formatTime(currentTime);
+                }
+                requestAnimationFrame(updateUI);
+            }
+
+            progressBar.addEventListener('input', () => { currentTimeEl.textContent = formatTime(progressBar.value); });
+            progressBar.addEventListener('mousedown', () => { isSeeking = true; });
+            progressBar.addEventListener('mouseup', () => {
+                Tone.Transport.seconds = progressBar.value;
+                isSeeking = false;
+            });
+            progressBar.addEventListener('touchstart', () => { isSeeking = true; }, { passive: true });
+            progressBar.addEventListener('touchend', () => {
+                Tone.Transport.seconds = progressBar.value;
+                isSeeking = false;
+            });
+
+            document.getElementById('master-volume').addEventListener('input', (e) => { Tone.getDestination().volume.value = e.target.value; });
+
+            document.querySelectorAll('.voice-channel').forEach(channelEl => {
+                const voice = channelEl.dataset.voice;
+                const volumeSlider = channelEl.querySelector('.volume-slider');
+                volumeSlider.addEventListener('input', (e) => { if(channels[voice]) channels[voice].volume.value = e.target.value; });
+                const panSlider = channelEl.querySelector('.pan-slider');
+                panSlider.addEventListener('input', (e) => { if(channels[voice]) channels[voice].pan.value = e.target.value; });
+            });
+
+            playPauseBtn.addEventListener('click', async () => {
+                if (playPauseBtn.disabled) return;
+                if (Tone.context.state !== 'running') {
+                    await Tone.start();
+                }
+
+                if (Tone.Transport.state !== 'started') {
+                    Tone.Transport.start();
+                    playIcon.classList.add('hidden');
+                    pauseIcon.classList.remove('hidden');
+                    playText.textContent = 'Pausar';
+                } else {
+                    Tone.Transport.pause();
+                    pauseIcon.classList.add('hidden');
+                    playIcon.classList.remove('hidden');
+                    playText.textContent = 'Tocar';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
